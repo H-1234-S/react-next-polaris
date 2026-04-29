@@ -4,7 +4,7 @@ import { generateText } from "ai";
 
 const minimax = createMinimax({
     apiKey: process.env.MINIMAX_API_KEY,
-    baseURL: 'https://api.minimaxi.com/anthropic/v1'
+    baseURL: process.env.MINIMAX_QUERY_URL
 })
 
 export const demoMinimax = inngest.createFunction(
