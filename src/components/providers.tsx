@@ -4,7 +4,6 @@ import { ReactNode } from 'react'
 
 import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
-import { UserButton } from "@clerk/nextjs";
 import { useAuth } from '@clerk/nextjs'
 
 import { AuthLoading, ConvexReactClient } from 'convex/react'
@@ -68,5 +67,5 @@ export default function Provider({
  * 
  *  Convex拿Token去进行验证
  * 
- *  验证成功才允许访问数据库
+ *  验证成功允许访问对应的数据
  */
