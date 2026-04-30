@@ -17,6 +17,11 @@ export const demoGemini = inngest.createFunction(
             return await generateText({
                 model: vertex('gemini-2.5-flash'),
                 prompt: '你好,你是什么模型？',
+                experimental_telemetry: {
+                    isEnabled: true,
+                    recordInputs: true,
+                    recordOutputs: true,
+                },
             })
         })
     }
