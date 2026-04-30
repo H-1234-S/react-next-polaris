@@ -8,8 +8,8 @@ import { generateText } from "ai";
 const firecrawl = new Firecrawl({ apiKey: process.env.FIRECRAWL_API_KEY });
 
 const minimax = createMinimax({
-    apiKey: process.env.MINIMAX_API_KEY,
-    baseURL: process.env.MINIMAX_QUERY_URL
+  apiKey: process.env.MINIMAX_API_KEY,
+  baseURL: process.env.MINIMAX_QUERY_URL
 })
 
 const URL_REGEX = /https?:\/\/[^\s\u3000\u4e00-\u9fa5，。！？、]+(?<![,，.])/g;
@@ -44,7 +44,12 @@ export const demoFunction = inngest.createFunction(
     await step.run('minimax-text', async () => {
       return await generateText({
         model: minimax('MiniMax-M2.7'),
-        prompt: finalPrompt
+        prompt: finalPrompt,
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: true,
+          recordOutputs: true,
+        },
       })
     })
 

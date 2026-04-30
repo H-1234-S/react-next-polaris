@@ -16,7 +16,12 @@ export const demoMinimax = inngest.createFunction(
         await step.run('minimax-text', async () => {
             return await generateText({
                 model: minimax('MiniMax-M2.7'),
-                prompt: '你好,你是什么模型？'
+                prompt: '你好,你是什么模型？',
+                experimental_telemetry: {
+                    isEnabled: true,
+                    recordInputs: true,
+                    recordOutputs: true,
+                },
             })
         })
     }
