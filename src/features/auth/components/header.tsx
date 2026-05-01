@@ -12,7 +12,7 @@ export const Header = () => {
                     href="/"
                     className="group flex cursor-pointer items-center gap-2.5 transition-all duration-200 hover:opacity-80"
                 >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[oklch(0.9856_0.0008_264.3)]/10 text-[oklch(0.9856_0.0008_264.3)] shadow-[0_0_15px_rgba(255,255,255,0.08)]">
+                    <div className="flex h-8 w-8 items-center justify-center text-[oklch(0.9856_0.0008_264.3)]">
                         <Sparkles className="h-4 w-4" />
                     </div>
                     <span className="text-lg font-semibold tracking-tight text-[oklch(0.9856_0.0008_264.3)]">

@@ -14,8 +14,8 @@ import {
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
 
 import { ThemeProvider } from './theme-provider'
-import { UnauthenticatedView } from '@/features/auth/components/unauthenticated-view';
-import { AuthLoadingView } from '@/features/auth/components/auth-loading-view';
+import { UnauthenticatedView } from '@/features/auth/views/unauthenticated-view';
+import { AuthLoadingView } from '@/features/auth/views/auth-loading-view';
 
 if (!process.env.NEXT_PUBLIC_CONVEX_URL) {
     throw new Error('Missing NEXT_PUBLIC_CONVEX_URL in your .env file')

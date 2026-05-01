@@ -1,12 +1,10 @@
-import { Background } from './background';
-import { Header } from './header';
+
+import { Background } from '../components/background';
 
 export const AuthLoadingView = () => {
     return (
         <div className="relative min-h-screen overflow-hidden">
             <Background />
-
-            <Header />
 
             <main className="mx-auto max-w-7xl px-6 lg:px-8">
                 <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center">

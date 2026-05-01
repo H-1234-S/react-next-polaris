@@ -1,9 +1,9 @@
 import { SignInButton, SignUpButton } from '@clerk/nextjs';
 
-import { Background } from './background';
-import { Header } from './header';
-import { Footer } from './footer';
-import { CodePreview } from './code-preview';
+import { Background } from '../components/background';
+import { Header } from '../components/header';
+import { Footer } from '../components/footer';
+import { CodePreview } from '../components/code-preview';
 
 export const UnauthenticatedView = () => {
     return (
