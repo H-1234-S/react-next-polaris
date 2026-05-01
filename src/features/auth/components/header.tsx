@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export const Header = () => {
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-[oklch(0.2925_0.0157_264.3)]/20 bg-[oklch(0.2925_0.0157_264.3)]/60 backdrop-blur-xl">
+        <header className="sticky top-0 z-50 w-full border-b border-white/[0.03] bg-white/[0.01] backdrop-blur-3xl backdrop-saturate-100">
             <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 lg:px-8">
                 {/* Logo */}
                 <Link

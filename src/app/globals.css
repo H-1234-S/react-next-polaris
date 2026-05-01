@@ -119,7 +119,8 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background: transparent;
+    @apply text-foreground;
   }
 }
 
@@ -205,4 +206,75 @@
 .animate-aurora-3 {
   animation: aurora-3 18s ease-in-out infinite;
   animation-delay: -8s;
+}
+
+/* Star drift animations - irregular slow movement */
+@keyframes star-drift-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.7;
+  }
+  16.67% {
+    transform: translate(4px, -2px) scale(1.02);
+    opacity: 0.85;
+  }
+  33.33% {
+    transform: translate(8px, -5px) scale(1.01);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(4px, 3px) scale(1);
+    opacity: 0.75;
+  }
+  66.67% {
+    transform: translate(-3px, 5px) scale(1.01);
+    opacity: 0.8;
+  }
+  83.33% {
+    transform: translate(-6px, -2px) scale(1.02);
+    opacity: 0.85;
+  }
+}
+
+@keyframes star-drift-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translate(-5px, 3px) scale(1.01);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-10px, 6px) scale(1);
+    opacity: 0.85;
+  }
+  75% {
+    transform: translate(6px, -8px) scale(1.02);
+    opacity: 0.7;
+  }
+}
+
+@keyframes star-pulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.animate-star-drift-1 {
+  animation: star-drift-1 60s ease-in-out infinite;
+}
+
+.animate-star-drift-2 {
+  animation: star-drift-2 70s ease-in-out infinite;
+  animation-delay: -10s;
+}
+
+.animate-star-pulse {
+  animation: star-pulse 20s ease-in-out infinite;
 }
