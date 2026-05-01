@@ -1,38 +1,45 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
+import { verifyAuth } from "./auth";
+
+export const create = mutation({
+    args: {
+        name: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await verifyAuth(ctx)
+
+        await ctx.db.insert('projects', {
+            name: args.name,
+            ownerId: identity.subject,
+            updatedAt: Date.now(),
+        })
+    },
+});
 
 export const get = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-
-        if(!identity) {
-            throw new Error("Not authenticated");
-        }
+        const identity = await verifyAuth(ctx);
 
         return await ctx.db
-            .query('users')
-            .collect()
-    }
-})
-
-export const create = mutation({
-    args:{
-        name:v.string(),
-        email:v.string()
+            .query('projects',)
+            .withIndex('by_owner', (q) => q.eq("ownerId", identity.subject))
+            .collect();
     },
-    handler: async (ctx,args) => {
-        const identity = await ctx.auth.getUserIdentity();
+});
 
-        if(!identity) {
-            throw new Error("Not authenticated");
-        }
+export const getPartial = query({
+  args: {
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await verifyAuth(ctx);
 
-        await ctx.db.insert('users',{
-            name:args.name,
-            email:args.email,
-            createdAt:Date.now(),
-            role:'admin'
-        })
-    }
-})
+    return await ctx.db
+      .query("projects")
+      .withIndex("by_owner", (q) => q.eq("ownerId", identity.subject))
+      .order("desc")
+      .take(args.limit);    // 分页
+  },
+});
