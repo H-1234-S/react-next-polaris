@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "inngest": "npx inngest-cli@latest dev",
+    "convex": "npx convex dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -41,6 +42,7 @@
     "recharts": "^3.8.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "unique-names-generator": "^4.7.1",
     "vaul": "^1.1.2",
     "vercel-minimax-ai-provider": "^0.0.2",
     "zod": "^4.3.6"
