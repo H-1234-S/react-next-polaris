@@ -37,22 +37,20 @@ export const CodePreview = () => {
         <div className="relative hidden lg:block">
             {/* Ambient glow behind */}
             <div
-                className="absolute -inset-4 rounded-3xl"
+                className="absolute -inset-4 rounded-2xl"
                 style={{
                     background:
-                        'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.06) 0%, transparent 60%)',
+                        'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.06) 0%, transparent 60%)',
                     filter: 'blur(30px)',
                 }}
             />
 
-            {/* Main card with subtle tilt */}
+            {/* Main card */}
             <div
                 className="relative rounded-2xl border border-[oklch(0.9856_0.0008_264.3)]/[0.06] bg-[oklch(0.9856_0.0008_264.3)]/[0.015] backdrop-blur-xl overflow-hidden"
                 style={{
-                    transform: 'perspective(1200px) rotateY(-6deg) rotateX(4deg)',
-                    transformOrigin: 'right center',
                     boxShadow: `
-                        -25px 25px 50px -12px rgba(0,0,0,0.6),
+                        0 25px 50px -12px rgba(0,0,0,0.5),
                         0 0 0 1px rgba(255,255,255,0.03) inset,
                         0 2px 0 rgba(255,255,255,0.05) inset
                     `,

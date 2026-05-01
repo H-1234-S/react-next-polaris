@@ -278,3 +278,14 @@
 .animate-star-pulse {
   animation: star-pulse 20s ease-in-out infinite;
 }
+
+@keyframes pulse-ring {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
