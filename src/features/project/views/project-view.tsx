@@ -24,7 +24,7 @@ const font = Poppins({
     weight: ["400", "500", "600", "700"],
 })
 
-export const ProjectsView = () => {
+export const ProjectView = () => {
     const createProject = useCreateProject();
 
     const [commandDialogOpen, setCommandDialogOpen] = useState(false);
@@ -55,7 +55,9 @@ export const ProjectsView = () => {
                     <div className="flex justify-between gap-4 w-full items-center">
 
                         <div className="flex items-center gap-2 w-full group/logo">
-                            <img src="/logo.svg" alt="Polaris" className="size-[32px] md:size-[46px]" />
+                            <img src="/logo.svg" alt="Polaris"
+                                className="invert brightness-0 invert-[1] size-[32px] md:size-[46px]"
+                            />
                             <h1 className={cn(
                                 "text-4xl md:text-5xl font-semibold",
                                 font.className,
