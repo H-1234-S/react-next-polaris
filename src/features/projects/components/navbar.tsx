@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { Id } from "../../../../convex/_generated/dataModel";
-import { useProject, useRenameProject } from "../hooks/use-project";
+import { useProject, useRenameProject } from "../hooks/use-projects";
 
 const font = Poppins({
     subsets: ["latin"],

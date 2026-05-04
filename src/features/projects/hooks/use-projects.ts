@@ -47,19 +47,19 @@ export const useCreateProject = () => {
     )
 };
 
-export const useRenameProject = (projectId: Id<"projects">) => {
+export const useRenameProject = () => {
   return useMutation(api.projects.rename).withOptimisticUpdate(
     (localStore, args) => {
       const existingProject = localStore.getQuery(
         api.projects.getById,
-        { id: projectId }
+        { id: args.id }
       );
 
       // 更新该Id的缓存
       if (existingProject !== undefined && existingProject !== null) {
         localStore.setQuery(
           api.projects.getById,
-          { id: projectId },
+          { id: args.id },
           {
             ...existingProject,
             name: args.name,
