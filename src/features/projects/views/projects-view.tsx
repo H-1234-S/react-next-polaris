@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 
-import { ProjectsList } from "../components/project-list";
+import { ProjectsList } from "../components/projects-list";
 import { useCreateProject } from "../hooks/use-project";
 import { ProjectsCommandDialog } from "../components/projects-command-dialog";
 
