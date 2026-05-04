@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 
 import { ProjectsList } from "../components/projects-list";
-import { useCreateProject } from "../hooks/use-project";
+import { useCreateProject } from "../hooks/use-projects";
 import { ProjectsCommandDialog } from "../components/projects-command-dialog";
 
 const font = Poppins({
