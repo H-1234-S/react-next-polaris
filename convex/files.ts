@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
 import { verifyAuth } from "./auth";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 
 export const getFiles = query({
     args: { projectId: v.id("projects") },
@@ -48,6 +48,57 @@ export const getFile = query({
         }
 
         return file;
+    },
+});
+
+/**
+ * 通过向上遍历父级链构建文件的完整路径。
+ *
+ * 输入：
+ * 
+ * - 一个文件 ID（例如，“button.tsx”的 ID）
+ * 
+ * 输出：
+ * 
+ * - 从根到文件的祖先数组：[{ _id, name: "src" }, { _id, name: "components" }, { _id, name: "button.tsx" }]
+ *
+ * 用途：面包屑导航（src > components > button.tsx）
+ */
+export const getFilePath = query({
+    args: { id: v.id("files") },
+    handler: async (ctx, args) => {
+        const identity = await verifyAuth(ctx);
+
+        const file = await ctx.db.get("files", args.id);
+
+        if (!file) {
+            throw new Error("File not found");
+        }
+
+        const project = await ctx.db.get("projects", file.projectId);
+
+        if (!project) {
+            throw new Error("Project not found");
+        }
+
+        if (project.ownerId !== identity.subject) {
+            throw new Error("Unauthorized to access this project");
+        }
+
+        const path: { _id: string; name: string }[] = [];
+        let currentId: Id<"files"> | undefined = args.id;
+
+        while (currentId) {
+            const file = (await ctx.db.get("files", currentId)) as
+                | Doc<"files">
+                | undefined;
+            if (!file) break;
+
+            path.unshift({ _id: file._id, name: file.name });
+            currentId = file.parentId;
+        }
+
+        return path;
     },
 });
 

@@ -36,6 +36,7 @@ export const TreeItemWrapper = ({
 }) => {
     return (
         <ContextMenu>
+            {/* ContextMenuTrigger 内部自动监听 onContextMenu（右键点击）事件 */}
             <ContextMenuTrigger asChild>
                 <button
                     onClick={onClick}
