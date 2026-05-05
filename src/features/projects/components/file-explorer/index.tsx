@@ -22,7 +22,7 @@ export const FileExplorer = ({
 }: {
     projectId: Id<"projects">
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
 
     const [collapseKey, setCollapseKey] = useState(0);
 
@@ -142,3 +142,16 @@ export const FileExplorer = ({
         </div>
     )
 }
+
+/**
+ *  合上所有文件夹原理（key重置组件状态技巧）：
+ * 
+ *  将collapseKey传递给tree的key，当collapseKey变化时，react会视作为所有tree发生变化
+ * 
+ *  那么将会销毁所有tree组件，然后重新创建tree组件
+ * 
+ *  重新挂载tree组件时，因为isOpne default value 是false
+ * 
+ *  因此会合上所有的tree组件
+ * 
+ */

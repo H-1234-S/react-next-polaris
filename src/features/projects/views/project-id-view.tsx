@@ -5,9 +5,10 @@ import { Allotment } from "allotment";
 import { FaGithub } from "react-icons/fa";
 
 import { cn } from "@/lib/utils";
+import { EditorView } from "@/features/editor/views/editor-view";
 
-import { Id } from "../../../../convex/_generated/dataModel";
 import { FileExplorer } from "../components/file-explorer";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 800;
@@ -56,18 +57,14 @@ export const ProjectIdView = ({
           isActive={activeView === "preview"}
           onClick={() => setActiveView("preview")}
         />
-
         <div className="flex-1 flex justify-end h-full">
           <div className="flex items-center gap-1.5 h-full px-3 cursor-pointer text-muted-foreground border-l hover:bg-accent/30">
             <FaGithub className="size-3.5" />
             <span className="text-sm">Export</span>
           </div>
         </div>
-
       </nav>
-
       <div className="flex-1 relative">
-
         <div className={cn(
           "absolute inset-0",
           activeView === "editor" ? "visible" : "invisible"
@@ -80,23 +77,19 @@ export const ProjectIdView = ({
               preferredSize={DEFAULT_SIDEBAR_WIDTH}
             >
               <FileExplorer projectId={projectId} />
-              <p>FileExplorer</p>
             </Allotment.Pane>
             <Allotment.Pane>
-              <p>Editor view</p>
+              <EditorView projectId={projectId} />
             </Allotment.Pane>
           </Allotment>
         </div>
-
         <div className={cn(
           "absolute inset-0",
           activeView === "preview" ? "visible" : "invisible"
         )}>
           <div>Preview</div>
         </div>
-
       </div>
-
     </div>
   );
 };
