@@ -37,10 +37,6 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
 
     /**
      * 打开文件三种方式：作为预览打开、作为固定打开、已打开只需要激活
-     * @param projectId 
-     * @param fileId 
-     * @param param2 
-     * @returns 
      */
     openFile: (projectId, fileId, { pinned }) => {
         // 创建浅拷贝

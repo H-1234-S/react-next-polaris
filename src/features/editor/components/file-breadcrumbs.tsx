@@ -23,6 +23,7 @@ export const FileBreadcrumbs = ({
   const { activeTabId } = useEditor(projectId);
   const filePath = useFilePath(activeTabId);
 
+  // 加载中或者没有任何标签，返回一个占位符
   if (filePath === undefined || !activeTabId) {
     return (
       <div className="p-2 bg-background pl-4 border-b">

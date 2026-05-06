@@ -120,6 +120,7 @@ export const FileExplorer = ({
                     <>
                         {/* rootFiles返回undefined为查询中 */}
                         {rootFiles === undefined && <LoadingRow level={0} />}
+
                         {creating && (
                             <CreateInput
                                 type={creating}
@@ -128,6 +129,7 @@ export const FileExplorer = ({
                                 onCancel={() => setCreating(null)}
                             />
                         )}
+
                         {rootFiles?.map((item) => (
                             <Tree
                                 key={`${item._id}-${collapseKey}`}
