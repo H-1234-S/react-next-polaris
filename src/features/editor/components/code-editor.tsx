@@ -41,6 +41,7 @@ export const CodeEditor = ({
                 keymap.of([indentWithTab]),
                 minimap(),
                 indentationMarkers(),
+                // 监听用户输入，调用onChange
                 EditorView.updateListener.of((update) => {
                     if (update.docChanged) {
                         onChange(update.state.doc.toString());

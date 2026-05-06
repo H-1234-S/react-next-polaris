@@ -22,6 +22,7 @@ export const EditorView = ({
     const activeFile = useFile(activeTabId);
     const updateFile = useUpdateFile();
 
+    // 用于防抖
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const isActiveFileBinary = activeFile && activeFile.storageId;
@@ -38,6 +39,7 @@ export const EditorView = ({
 
             <div className="flex-1 min-h-0 bg-background">
 
+                {/* 加载中 */}
                 {!activeFile && (
                     <div className="size-full flex items-center justify-center">
                         <Image
@@ -49,6 +51,7 @@ export const EditorView = ({
                         />
                     </div>
                 )}
+
                 {isActiveFileText && (
                     <CodeEditor
                         key={activeFile._id}
@@ -65,9 +68,11 @@ export const EditorView = ({
                         }}
                     />
                 )}
+
                 {isActiveFileBinary && (
                     <p>TODO: Implement binary preview</p>
                 )}
+
             </div>
         </div>
     );
