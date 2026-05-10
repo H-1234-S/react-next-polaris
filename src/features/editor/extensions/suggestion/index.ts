@@ -17,18 +17,13 @@ const setSuggestionEffect = StateEffect.define<string | null>();
 
 // StateField：在编辑器中保存建议状态。
 // 也就是在编译器状态里开辟了一块新的内存空间，增加了一个叫suggestionState新字段
-// - create(): 当编辑器加载时返回初始值
-// - update(): 在每次事务（按键等）时调用，以可能更新值
 const suggestionState = StateField.define<string | null>({
-  // 编辑器初始化时之执行一次
   create() {
     return null;
   },
-  // 每次用户操作时都会执行
   update(value, transaction) {
     // value - 当前的旧值；transaction - 本次操作的信息包
-    // 如果我们找到 setSuggestionEffect，返回它的新值
-    // 否则，保持当前值不变
+    // 如果找到 setSuggestionEffect，返回它的新值
     for (const effect of transaction.effects) {
       if (effect.is(setSuggestionEffect)) {
         return effect.value;
@@ -50,6 +45,7 @@ class SuggestionWidget extends WidgetType {
     span.textContent = this.text;
     span.style.opacity = "0.4"; // 幽灵文字外观
     span.style.pointerEvents = "none"; // 不要干扰点击
+
     return span;
   }
 }
@@ -59,7 +55,7 @@ let isWaitingForSuggestion = false;
 const DEBOUNCE_DELAY = 3000;
 let currentAbortController: AbortController | null = null;
 
-// 参数处理函数
+// 参数处理函数，收集发送给 LLM 的信息
 const generatePayload = (view: EditorView, fileName: string) => {
   const code = view.state.doc.toString();
   if (!code || code.trim().length === 0) return null;
@@ -105,7 +101,10 @@ const generatePayload = (view: EditorView, fileName: string) => {
   }
 }
 
-// debounce plugin
+
+// 为什么使用 ViewPlugin 而不是使用 StateField ？？ 
+// StateField 只适合纯数据的逻辑操作
+// ViewPlugin 处理杂的 UI 交互、有状态的视觉效果或手动 DOM 操作，在每次 View 都触发
 const createDebouncePlugin = (fileName: string) => {
   return ViewPlugin.fromClass(
     class {
@@ -240,7 +239,29 @@ const acceptSuggestionKeymap = keymap.of([
 
 export const suggestion = (fileName: string) => [
   suggestionState, // 状态存储
-  createDebouncePlugin(fileName), // 在输入时触发建议
+  createDebouncePlugin(fileName),
   renderPlugin, // 渲染幽灵文字
   acceptSuggestionKeymap, // 按 Tab 键接受
 ];
+
+/**
+ *  用户输入/光标移动后
+ * 
+ *  触发 createDebouncePlugin.update 函数
+ * 
+ *  调用 createDebouncePlugin.triggerSuggestion 函数
+ * 
+ *  如果用户 xxx 时间内没有操作，则发送请求
+ * 
+ *  拿到响应后，dispatch 一个 effect ，也就是改变 setSuggestionEffect 的 value
+ * 
+ *  同时会调用 suggestionState.update 函数，更改 suggestionState 的 value
+ * 
+ *  这时才到 renderPlugin 发生作用，虽然 renderPlugin 在 view 变化时触发，但是做了一些信号操作
+ * 
+ *  当不在请求也就是拿到响应并且 suggestionState 存在时，才会在当前光标位置创建一个 widget decoration
+ * 
+ *  真正的 DOM 由 SuggestionWidget 创建，SuggestionWidget extends WidgetType，这是在编辑器中创建 DOM 的标准方法
+ * 
+ *  最后，tab 键接受
+ */
