@@ -92,7 +92,7 @@ export const ProjectView = () => {
                                 <div className="flex items-center justify-between w-full">
                                     <SparkleIcon className="size-4" />
                                     <Kbd className="bg-accent border">
-                                        ⌘J
+                                        ctrl+J
                                     </Kbd>
                                 </div>
                                 <div>
