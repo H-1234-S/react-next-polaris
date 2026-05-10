@@ -10,7 +10,11 @@ const vertex = createVertex({
 export async function POST() {
   try {
     const result = await generateText({
-      model: vertex('gemini-2.5-flash'),
+      // gemini-3-pro-preview
+      // gemini-2.5-pro
+      // gemini-2.5-flash
+
+      model: vertex('gemini-3-pro-preview'),
       prompt: 'Write a vegetarian lasagna recipe for 4 people.',
     });
 

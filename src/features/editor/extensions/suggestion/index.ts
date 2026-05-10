@@ -11,21 +11,24 @@ import { StateEffect, StateField } from "@codemirror/state";
 
 import { fetcher } from "./fetcher";
 
-// StateEffect: A way to send "messages" to update state.
-// We define one effect type for setting the suggestion text.
+// StateEffect：一种发送“消息”以更新状态的方式。
+// 定义了一种用于设置建议文本的效果类型。
 const setSuggestionEffect = StateEffect.define<string | null>();
 
-// StateField: Holds our suggestion state in the editor.
-// - create(): Returns the initial value when the editor loads
-// - update(): Called on every transaction (keystroke, etc.) to potentially update the value
+// StateField：在编辑器中保存建议状态。
+// 也就是在编译器状态里开辟了一块新的内存空间，增加了一个叫suggestionState新字段
+// - create(): 当编辑器加载时返回初始值
+// - update(): 在每次事务（按键等）时调用，以可能更新值
 const suggestionState = StateField.define<string | null>({
+  // 编辑器初始化时之执行一次
   create() {
     return null;
   },
+  // 每次用户操作时都会执行
   update(value, transaction) {
-    // Check each effect in this transaction
-    // If we find our setSuggestionEffect, return its new value
-    // Otherwise, keep the current value unchanged
+    // value - 当前的旧值；transaction - 本次操作的信息包
+    // 如果我们找到 setSuggestionEffect，返回它的新值
+    // 否则，保持当前值不变
     for (const effect of transaction.effects) {
       if (effect.is(setSuggestionEffect)) {
         return effect.value;
@@ -35,8 +38,8 @@ const suggestionState = StateField.define<string | null>({
   },
 });
 
-// WidgetType: Creates custom DOM elements to display in the editor.
-// toDOM() is called by CodeMirror to create the actual HTML element.
+// WidgetType：创建自定义 DOM 元素以在编辑器中显示。
+// CodeMirror 会调用 toDOM() 来创建实际的 HTML 元素。
 class SuggestionWidget extends WidgetType {
   constructor(readonly text: string) {
     super();
@@ -45,27 +48,38 @@ class SuggestionWidget extends WidgetType {
   toDOM() {
     const span = document.createElement("span");
     span.textContent = this.text;
-    span.style.opacity = "0.4"; // Ghost text appearance
-    span.style.pointerEvents = "none"; // Don't interfere with clicks
+    span.style.opacity = "0.4"; // 幽灵文字外观
+    span.style.pointerEvents = "none"; // 不要干扰点击
     return span;
   }
 }
 
 let debounceTimer: number | null = null;
 let isWaitingForSuggestion = false;
-const DEBOUNCE_DELAY = 300;
+const DEBOUNCE_DELAY = 3000;
 let currentAbortController: AbortController | null = null;
 
+// 参数处理函数
 const generatePayload = (view: EditorView, fileName: string) => {
   const code = view.state.doc.toString();
   if (!code || code.trim().length === 0) return null;
 
+  // 主光标的位置（一个数字，表示在文档中的字符偏移量）。
   const cursorPosition = view.state.selection.main.head;
+
+  // lineAt() 根据字符位置找到所在行的信息，返回一个包含 from、to、number、text 等属性的对象。
   const currentLine = view.state.doc.lineAt(cursorPosition);
+
+  // 计算光标在当前行内的列索引（从0开始）
+  // currentLine.from 是该行在文档中的起始位置。
   const cursorInLine = cursorPosition - currentLine.from;
 
   const previousLines: string[] = [];
+
+  // 最多取5行，但不能超过已有行数。比如第2行就只能取1行
   const previousLinesToFetch = Math.min(5, currentLine.number - 1);
+
+  // 从当前行往前数，取 previousLinesToFetch 行，把每行的 text 加入数组
   for (let i = previousLinesToFetch; i >= 1; i--) {
     previousLines.push(view.state.doc.line(currentLine.number - i).text);
   }
@@ -73,6 +87,8 @@ const generatePayload = (view: EditorView, fileName: string) => {
   const nextLines: string[] = [];
   const totalLines = view.state.doc.lines;
   const linesToFetch = Math.min(5, totalLines - currentLine.number);
+
+  // 从当前行往后数，取 linesToFetch 行
   for (let i = 1; i <= linesToFetch; i++) {
     nextLines.push(view.state.doc.line(currentLine.number + i).text);
   }
@@ -89,6 +105,7 @@ const generatePayload = (view: EditorView, fileName: string) => {
   }
 }
 
+// debounce plugin
 const createDebouncePlugin = (fileName: string) => {
   return ViewPlugin.fromClass(
     class {
@@ -107,6 +124,7 @@ const createDebouncePlugin = (fileName: string) => {
           clearTimeout(debounceTimer);
         }
 
+        // 如果当前有fetch请求，那么终止它
         if (currentAbortController !== null) {
           currentAbortController.abort();
         }
@@ -146,6 +164,8 @@ const createDebouncePlugin = (fileName: string) => {
   )
 }
 
+// 渲染幽灵文本插件
+// 编辑器创建 -> constructor执行 -> 用户输入 -> update执行
 const renderPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
@@ -154,15 +174,16 @@ const renderPlugin = ViewPlugin.fromClass(
       this.decorations = this.build(view);
     }
 
+    // update 参数是 CodeMirror 每次操作后的事件对象，包含所有变更信息
     update(update: ViewUpdate) {
-      // Rebuild decorations if doc changed, cursor moved, or suggestion changed
+      // 如果建议已经更改
       const suggestionChanged = update.transactions.some((transaction) => {
         return transaction.effects.some((effect) => {
           return effect.is(setSuggestionEffect);
         });
       });
 
-      // Rebuild decorations if doc changed, cursor moved, or suggestion changed
+      // 如果文档更改、光标移动或建议更改，则重建装饰
       const shouldRebuild =
         update.docChanged || update.selectionSet || suggestionChanged;
 
@@ -176,48 +197,50 @@ const renderPlugin = ViewPlugin.fromClass(
         return Decoration.none;
       }
 
-      // Get current suggestion from state
+      // 从状态获取当前建议
       const suggestion = view.state.field(suggestionState);
       if (!suggestion) {
         return Decoration.none;
       }
 
-      // Create a widget decoration at the cursor position
+      // 在光标位置创建一个小部件装饰
       const cursor = view.state.selection.main.head;
       return Decoration.set([
+        // 创建一个部件装饰，在指定位置插入一个 DOM 元素
         Decoration.widget({
-          widget: new SuggestionWidget(suggestion),
-          side: 1, // Render after cursor (side: 1), not before (side: -1)
+          widget: new SuggestionWidget(suggestion), // 要渲染的 WidgetType 实例
+          side: 1, // 在光标之后渲染（侧：1），而不是之前（侧：-1）
         }).range(cursor),
       ]);
     }
   },
-  { decorations: (plugin) => plugin.decorations } // Tell CodeMirror to use our decorations
+  { decorations: (plugin) => plugin.decorations } // 告诉 CodeMirror 使用我们的装饰
 );
 
+// 自定义tab快捷键
 const acceptSuggestionKeymap = keymap.of([
   {
     key: "Tab",
     run: (view) => {
       const suggestion = view.state.field(suggestionState);
       if (!suggestion) {
-        return false; // No suggestion? Let Tab do its normal thing (indent)
+        return false; // 没有建议？让 Tab 做它正常的事情（缩进）
       }
 
       const cursor = view.state.selection.main.head;
       view.dispatch({
-        changes: { from: cursor, insert: suggestion }, // Insert the suggestion text
-        selection: { anchor: cursor + suggestion.length }, // Move cursor to end
-        effects: setSuggestionEffect.of(null), // Clear the suggestion
+        changes: { from: cursor, insert: suggestion }, // 插入建议文本
+        selection: { anchor: cursor + suggestion.length }, // 将光标移动到末尾
+        effects: setSuggestionEffect.of(null), // 清除建议，这会触发 suggestionState.update()，将存储的建议文本设为 null。
       });
-      return true; // We handled Tab, don't indent
+      return true; // 我们处理了Tab，不要缩进
     },
   },
 ]);
 
 export const suggestion = (fileName: string) => [
-  suggestionState, // Our state storage
-  createDebouncePlugin(fileName), // Triggers suggestions on typing
-  renderPlugin, // Renders the ghost text
-  acceptSuggestionKeymap, // Tab to accept
+  suggestionState, // 状态存储
+  createDebouncePlugin(fileName), // 在输入时触发建议
+  renderPlugin, // 渲染幽灵文字
+  acceptSuggestionKeymap, // 按 Tab 键接受
 ];

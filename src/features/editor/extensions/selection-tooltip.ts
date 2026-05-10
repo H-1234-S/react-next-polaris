@@ -41,7 +41,7 @@ const createTooltipForSelection = (
         quickEditButtonText.textContent = "Quick Edit";
 
         const quickEditButtonShortcut = document.createElement("span");
-        quickEditButtonShortcut.textContent = "⌘K";
+        quickEditButtonShortcut.textContent = "ctrl+K";
         quickEditButtonShortcut.className = "text-sm opacity-60";
 
         quickEditButton.appendChild(quickEditButtonText);
