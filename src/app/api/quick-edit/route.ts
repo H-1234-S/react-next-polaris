@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { firecrawl } from "@/lib/firecrawl";
 import { deepseek } from "@/lib/deepseek";
 
+// Zod Schema 传递给 LLM ，describe是给 LLM 读的
 const quickEditSchema = z.object({
     editedCode: z
         .string()
@@ -100,15 +101,17 @@ export async function POST(request: Request) {
             }
         }
 
+        // 有点问题，万一用户输入带有这种特殊字符怎么办？
         const prompt = QUICK_EDIT_PROMPT
             .replace("{selectedCode}", selectedCode)
             .replace("{fullCode}", fullCode || "")
             .replace("{instruction}", instruction)
             .replace("{documentation}", documentationContext);
 
+        // output 执行结构化输出
         const { output } = await generateText({
             model: deepseek('deepseek-chat'),
-            output: Output.object({ schema: quickEditSchema }),
+            output: Output.object({ schema: quickEditSchema }), // LLM 能看到 describe 
             prompt,
         });
 

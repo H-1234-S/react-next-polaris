@@ -5,6 +5,7 @@ import { fetcher } from "./fetcher";
 
 export const showQuickEditEffect = StateEffect.define<boolean>();
 
+// 定义了一个全局editorView，为了让Tooltip扩展中create函数使用
 let editorView: EditorView | null = null;
 let currentAbortController: AbortController | null = null;
 
@@ -14,6 +15,8 @@ export const quickEditState = StateField.define<boolean>({
     return false;
   },
 
+  // StateField 按注册顺序执行
+  // 该 field 字段，也就是函数返回结果时，会更改当前 transaction.state 中 quickEditState 结果
   update(value, transaction) {
     for (const effect of transaction.effects) {
       if (effect.is(showQuickEditEffect)) {
@@ -22,7 +25,7 @@ export const quickEditState = StateField.define<boolean>({
     }
     if (transaction.selection) {
       const selection = transaction.state.selection.main;
-      // 如果选区为空
+      // 如果主选区为空
       if (selection.empty) {
         return false;
       }
@@ -50,7 +53,7 @@ const createQuickEditTooltip = (state: EditorState): readonly Tooltip[] => {
     {
       pos: selection.to,       // tooltip 定位在选区结束位置
       above: false,             // 下方显示
-      strictSide: false,        // 允许在编辑器边缘溢出
+      strictSide: false,        // 是否允许在编辑器边缘溢出
 
       // 创建DOM
       create() {
@@ -100,6 +103,7 @@ const createQuickEditTooltip = (state: EditorState): readonly Tooltip[] => {
         form.onsubmit = async (e) => {
           e.preventDefault();
 
+          // 编辑器初始化后才可使用
           if (!editorView) return;
 
           const instruction = input.value.trim();
@@ -157,7 +161,8 @@ const createQuickEditTooltip = (state: EditorState): readonly Tooltip[] => {
 
         // 将input.focus推到下一个宏任务执行
         // 作用是在 tooltip DOM 完全挂载后再执行
-        // create() 返回的 DOM 会被 CodeMirror 插入到编辑器中，这个插入操作发生在当前事件处理完成之后
+        // create() 返回的 DOM 会被 CodeMirror 插入到编辑器中
+        // 这个插入操作发生在当前事件处理完成之后
         setTimeout(() => {
           input.focus();
         }, 0);
@@ -168,11 +173,13 @@ const createQuickEditTooltip = (state: EditorState): readonly Tooltip[] => {
   ];
 };
 
+// 标准创建流程，通过通过 showTooltip 这个 StateField 来管理
 const quickEditTooltipField = StateField.define<readonly Tooltip[]>({
   create(state) {
     return createQuickEditTooltip(state);
   },
 
+  // 等到 quickEditState 结果后才执行
   update(tooltips, transaction) {
     if (transaction.docChanged || transaction.selection) {
       return createQuickEditTooltip(transaction.state);
@@ -203,7 +210,7 @@ const quickEditTooltipField = StateField.define<readonly Tooltip[]>({
  */
 const quickEditKeymap = keymap.of([
   {
-    key: "Mod-k",
+    key: "ctrl+K",
     run: (view) => {
       const selection = view.state.selection.main;
       if (selection.empty) {
@@ -218,12 +225,14 @@ const quickEditKeymap = keymap.of([
   },
 ]);
 
+// 监听编辑器的变动
 // 每次编辑器更新时，将当前 EditorView 实例保存到 editorView 变量。用于在 tooltip 表单回调中访问编辑器。
 const captureViewExtension = EditorView.updateListener.of((update) => {
   editorView = update.view;
 });
 
 export const quickEdit = (fileName: string) => [
+  // StateField 按注册顺序执行
   quickEditState,
   quickEditTooltipField,
   quickEditKeymap,
@@ -232,11 +241,23 @@ export const quickEdit = (fileName: string) => [
 
 /**
  *  用户按ctrl + k，CodeMirror 遍历 keymap，找到 quickEditKeymap 匹配 
- * 
+ *  
  *  选区为空 → return false（不处理）
  *  选区有内容 → view.dispatch(effects: showQuickEditEffect.of(true))
- * 
- *  quickEditTooltipField.update() 检测到 showQuickEditEffect 变化
  *  
- *  重新调用 createQuickEditTooltip(state) 创建 tooltip
+ *  quickEditState.update先执行，更改状态为 effect.value，也就是ture
+ *  
+ *  quickEditTooltipField.update()后执行，调用 createQuickEditTooltip 函数返回 tooltip
+ *  
+ *  当 quickEditTooltipField 变化时，通知 showTooltip 重新渲染，显示悬浮提示框
+ *  
+ *  执行顺序：按注册顺序执行
+ *  1. quickEditState.update() 先运行，发现 showQuickEditEffect → 返回 false
+ *  2. quickEditTooltipField.update() 后运行，发现 showQuickEditEffect → 重新创建 tooltip 并返回空数组（因为 isQuickEditActive 变为 false）
+ */
+
+/**
+ *  dispatch驱动field.update执行
+ * 
+ *  在update函数中根据effect做额外操作，产生newState
  */

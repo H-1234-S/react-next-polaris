@@ -1,5 +1,6 @@
 import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
+
 import { showQuickEditEffect, quickEditState } from "./quick-edit";
 
 let editorView: EditorView | null = null;
@@ -14,6 +15,7 @@ const createTooltipForSelection = (
   }
 
   const isQuickEditActive = state.field(quickEditState);
+  // quickEditState 如果为 ture ,则应该显示 quick edito 而不是显示 selection
   if (isQuickEditActive) {
     return [];
   }
@@ -64,6 +66,7 @@ const createTooltipForSelection = (
   ]
 }
 
+// 需要用 Field 管理 Tooltip
 const selectionTooltipField = StateField.define<readonly Tooltip[]>({
   create(state) {
     return createTooltipForSelection(state);
@@ -87,6 +90,8 @@ const selectionTooltipField = StateField.define<readonly Tooltip[]>({
   ),
 });
 
+// EditorView.updateListener 位于生命周期更新循环的末端，也就是 DOM 更新后触发
+// 主要是用来处理一些逻辑上的问题
 const captureViewExtension = EditorView.updateListener.of((update) => {
   editorView = update.view;
 });
