@@ -47,4 +47,29 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_parent", ["parentId"])
     .index("by_project_parent", ["projectId", "parentId"]),
+
+
+  conversations: defineTable({
+    projectId: v.id("projects"),
+    title: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_project", ["projectId"]),
+
+  messages: defineTable({
+    conversationId: v.id("conversations"),
+    projectId: v.id("projects"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    // 只有 LLM 回复才有这个字段
+    status: v.optional(
+      v.union(
+        v.literal("processing"),  // AI正在生成回复
+        v.literal("completed"),   // 生成完成
+        v.literal("cancelled")    // 生成被取消
+      )
+    ),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_project_status", ["projectId", "status"]),
 });
