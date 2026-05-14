@@ -116,7 +116,7 @@ export const getProcessingMessages = query({
   },
 });
 
-// Used for Agent conversation context
+// 用于代理对话上下文
 export const getRecentMessages = query({
   args: {
     internalKey: v.string(),
@@ -139,7 +139,7 @@ export const getRecentMessages = query({
   },
 });
 
-// Used for Agent to update conversation title
+// 用于代理更新会话标题
 export const updateConversationTitle = mutation({
   args: {
     internalKey: v.string(),
@@ -156,7 +156,7 @@ export const updateConversationTitle = mutation({
   },
 });
 
-// Used for Agent "ListFiles" tool
+// 用于代理“ListFiles”工具
 export const getProjectFiles = query({
   args: {
     internalKey: v.string(),
@@ -286,7 +286,9 @@ export const createFiles = mutation({
           fileId: existing._id,
           error: "File already exists",
         });
-        continue;
+
+        // 跳出当次循环，执行下一次迭代
+        continue; 
       }
 
       const fileId = await ctx.db.insert("files", {
@@ -400,7 +402,7 @@ export const deleteFile = mutation({
       throw new Error("File not found");
     }
 
-    // Recursively delete file/folder and all descendants
+    // 递归删除文件/文件夹及其所有子项
     const deleteRecursive = async (fileId: typeof args.fileId) => {
       const item = await ctx.db.get(fileId);
 
@@ -436,6 +438,8 @@ export const deleteFile = mutation({
     return args.fileId;
   },
 });
+
+//----------------------------------------------------------
 
 export const cleanup = mutation({
   args: {

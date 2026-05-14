@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     }
   );
 
+  // 发送消息前先取消所有正在处理中的消息
   if (processingMessages.length > 0) {
     // 取消所有处理消息
     await Promise.all(
