@@ -485,3 +485,114 @@ If the instruction is unclear or cannot be applied, return the original code unc
 **Speculative Decoding 投机解码机制：** 它会先用一个极其轻量、速度极快的模型迅速“猜”出一段代码，然后再用稍微聪明一点的模型去“验证”这段代码。如果猜对了，就直接打包推给客户端，**长见识了md，但是为什么这么块？？**
 
 **本地微型上下文：** 为了快，Tab 补全不能去检索整个大项目。它只收集极少量的**强相关上下文**。例如：当前光标附近1000行代码、最近编辑过的几个文件
+
+# conversation system
+
+## ai element
+
+`ai element` 是一个基于 `shadcn/ui` 构建的组件库，内部封装了很多用于构建 ai 原生应用的组件，例如：对话、消息，开箱即用，还与 `vercel ai sdk` 深度集成，不用处理sse、md还有语音输入等，内部已经封装好了，也是**非常非常好用**
+
+`ai sdk` 为 ai 提供交互基础，例如流式传输、多模态、工具调用
+
+`ai element` 为 `ai sdk` 提供了 ui 层
+
+完整流程：
+
+1. **用户输入** AI Elements `PromptInput`
+
+2. **React 钩子** (`useChat`) 将消息发送到您的 API 路由
+
+3. **AI SDK** 通过 AI Gateway 从模型流式传输响应
+
+4. **AI 元素**在 `MessageResponse` 中渲染流式响应
+
+每一层负责其职责：
+
+|层|职责|
+|---|---|
+|AI 网关|模型访问、缓存、可观察性|
+|AI SDK|流媒体、钩子、服务器集成|
+|AI 元素|UI 组件、主题定制、无障碍访问|
+
+**示例：**
+``` js
+"use client";
+
+import { useChat } from "@ai-sdk/react";
+import {
+  Conversation,
+  ConversationContent,
+} from "@/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputProvider,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "@/components/ai-elements/prompt-input";
+
+export default function ChatPage() {
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
+  });
+
+  const handleSubmit = (message: { text: string }) => {
+    sendMessage({ text: message.text });
+  };
+
+  return (
+    <div className="h-screen flex flex-col">
+      <Conversation className="flex-1">
+        <ConversationContent>
+          {messages.map((message) => (
+            <Message key={message.id} from={message.role}>
+              <MessageContent>
+                {message.parts.map((part, i) =>
+                  part.type === "text" ? (
+                    <MessageResponse key={i}>{part.text}</MessageResponse>
+                  ) : null
+                )}
+              </MessageContent>
+            </Message>
+          ))}
+        </ConversationContent>
+      </Conversation>
+
+      <PromptInputProvider>
+        <PromptInput onSubmit={handleSubmit} className="p-4">
+          <PromptInputBody>
+            <PromptInputTextarea placeholder="Type a message..." />
+          </PromptInputBody>
+          <PromptInputFooter>
+            <PromptInputSubmit status={status} />
+          </PromptInputFooter>
+        </PromptInput>
+      </PromptInputProvider>
+    </div>
+  );
+}
+```
+
+# ai agent tools
+
+## agentkit
+
+`agentkit`是一个ai框架，是为了构建从单一模型调用到多agent系统的ai应用
+
+**核心概念：** 
+
+- agent，指的是一个有角色、有系统提示词、可以调用工具的执行单元
+- tools，工具，指的是可以让模型安全的调用你的代码
+- network，可以把多agent整合成一个可以工作的系统
+- state，可以让agent、tools、router之间共享短期上下文
+- router，注意：基于代码的路由，可以更清晰的知道下一步是调用agent还是返回undefined结束router
+
+`agentkit`可以与`inngest`结合

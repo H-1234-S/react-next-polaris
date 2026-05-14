@@ -182,28 +182,6 @@ export const processMessage = inngest.createFunction(
 
                 const lastResult = network.state.results.at(-1);
 
-                const raw = lastResult?.raw as {
-                    choices?: Array<{
-                        message?: {
-                            reasoning_content?: string;
-                            content?: string;
-                        }
-                    }>
-                };
-
-                const reasoning = raw?.choices?.[0]?.message?.reasoning_content;
-                const content = raw?.choices?.[0]?.message?.content;
-
-                // DeepSeek 要求在思考模式下，reasoning_content 必须传回给 API
-                // 使用 _messages 直接修改内部数组（messages 是 getter 返回副本）
-                if (reasoning) {
-                    network.state._messages.push({
-                        role: "assistant",
-                        content: content ?? "",
-                        reasoning_content: reasoning
-                    });
-                }
-
                 // 有文本响应
                 const hasTextResponse = lastResult?.output.some(
                     (m) => m.type === "text" && m.role === "assistant"
