@@ -1,7 +1,10 @@
-import { anthropic, createAgent, createNetwork } from '@inngest/agent-kit';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { createAgent, createNetwork } from '@inngest/agent-kit';
 import { messageCancel, messageSent } from "@/inngest/events";
 import { inngest } from "@/inngest/client";
 import { NonRetriableError } from "inngest";
+
+import { deepseekModel, setReasoning } from '@/lib/deepseek';
 
 import { convex } from "@/lib/convex-client";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -18,7 +21,6 @@ import { createCreateFolderTool } from './tools/create-folder';
 import { createRenameFileTool } from './tools/rename-file';
 import { createDeleteFilesTool } from './tools/delete-files';
 import { createScrapeUrlsTool } from './tools/scrape-urls';
-import { deepseekModel } from '@/lib/deepseek';
 
 interface MessageEvent {
     messageId: Id<"messages">;
@@ -158,18 +160,23 @@ export const processMessage = inngest.createFunction(
             name: "polaris",
             description: "An expert AI coding assistant",
             system: systemPrompt,
-            model: deepseekModel({ model: 'deepseek-v4-flash', provider: 'OpenAI' }),
+            model: deepseekModel({
+                provider: 'OpenAI',
+                model: 'deepseek-v4-pro',
+                feature: {
+                    temperature: 0.3,
+                    max_tokens: 16000
+                }
+            }),
             tools: [
                 createListFilesTool({ internalKey, projectId }),
                 createReadFilesTool({ internalKey }),
-                /*
                 createUpdateFileTool({ internalKey }),
                 createCreateFilesTool({ projectId, internalKey }),
                 createCreateFolderTool({ projectId, internalKey }),
                 createRenameFileTool({ internalKey }),
                 createDeleteFilesTool({ internalKey }),
                 createScrapeUrlsTool(),
-                */
             ],
         });
 
@@ -179,23 +186,43 @@ export const processMessage = inngest.createFunction(
             agents: [codingAgent],
             maxIter: 20,
             router: ({ network }) => {
-
                 const lastResult = network.state.results.at(-1);
+                if (!lastResult) return codingAgent;
 
-                // 有文本响应
-                const hasTextResponse = lastResult?.output.some(
+                // 从上一轮响应中提取 reasoning_content，存入 WeakMap，
+                // onCall 钩子会在下一轮请求发送前把它注入到对应 assistant 消息中
+                // 注意：raw 可能是 string（JSON 字符串）需要解析
+                let raw: Record<string, unknown> | undefined;
+                const rawData = lastResult.raw;
+                if (typeof rawData === 'string') {
+                    try {
+                        raw = JSON.parse(rawData);
+                    } catch (e) {
+                        console.error('[Router] JSON.parse failed:', e);
+                    }
+                } else if (rawData && typeof rawData === 'object') {
+                    raw = rawData as Record<string, unknown>;
+                }
+
+                if (raw) {
+                    const reasoning = (raw as any)?.choices?.[0]?.message?.reasoning_content as string | undefined;
+                    if (reasoning) {
+                        console.log('[Router] extracted reasoning:', `${reasoning.slice(0, 100)}...`);
+                        setReasoning(reasoning);
+                    }
+                }
+
+                const hasToolCalls = lastResult?.output?.some(m => m.type === "tool_call");
+                const hasTextResponse = lastResult?.output?.some(
                     (m) => m.type === "text" && m.role === "assistant"
                 );
-                // 有工具调用
-                const hasToolCalls = lastResult?.output.some(
-                    (m) => m.type === "tool_call"
-                );
 
-                // Anthropic 输出文本和工具调用一起
-                // 只有当有文本但没有工具调用（最终响应）时才停止
+                // 如果只有文本且没有工具调用，说明 Agent 任务完成了，退出循环
                 if (hasTextResponse && !hasToolCalls) {
                     return undefined;
                 }
+
+                // 只要有工具调用（或者刚拿到工具结果），就让 Agent 继续处理
                 return codingAgent;
             }
         });
