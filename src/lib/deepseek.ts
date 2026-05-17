@@ -45,21 +45,30 @@ export const deepseekModel = ({ provider, model, feature }: DeepseekModel) => {
 
     // DeepSeek reasoner: 从 thread-local 变量读取 reasoning_content 并注入
     const reasoning = pendingReasoning;
+
     console.log('[DeepSeek onCall] pendingReasoning:', reasoning ? `${reasoning.slice(0, 100)}...` : 'null');
+    
     if (reasoning) {
+
       const messages = body.messages as Array<Record<string, unknown>> | undefined;
+
       console.log('[DeepSeek onCall] messages count:', messages?.length);
+
       if (messages) {
+
+        // 倒序遍历，找到最后一个响应将字段注入
         for (let i = messages.length - 1; i >= 0; i--) {
           const msg = messages[i];
           const hasToolCalls = !!(msg.tool_calls && (msg.tool_calls as unknown[]).length > 0);
           const hasContent = !!(msg.content && (msg.content as string).trim() !== '');
           console.log(`[DeepSeek onCall] msg[${i}]: role=${msg.role}, hasToolCalls=${hasToolCalls}, hasContent=${hasContent}`);
+          
           if (msg.role === 'assistant' && hasToolCalls) {
             msg.reasoning_content = reasoning;
             console.log('[DeepSeek onCall] injected reasoning_content to msg index:', i);
             break;
           }
+
           if (msg.role === 'assistant' && hasContent) {
             msg.reasoning_content = reasoning;
             console.log('[DeepSeek onCall] injected reasoning_content to text-msg index:', i);
@@ -79,3 +88,14 @@ export const deepseekModel = ({ provider, model, feature }: DeepseekModel) => {
 export const setReasoning: (reasoning: string) => void = (reasoning) => {
   pendingReasoning = reasoning;
 };
+
+/**
+ *  不懂onCall方法  -> 源码
+ *  不明确response中有哪些字段  -> 接口文档
+ * 
+ *  解决步骤：
+ *  获取reasoning_content字段
+ *    通过raw参数获取，raw是模型的原始响应
+ *  将reasoning_content字段注入到下一轮请求中
+ *    通过onCall这个hook注入，这个hook是发送请求前最后一个钩子，用于临时换 endpoint、改鉴权信息、补默认参数，或者塞一些 provider 特定字段
+ */

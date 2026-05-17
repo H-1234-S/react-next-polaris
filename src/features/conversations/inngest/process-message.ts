@@ -110,7 +110,12 @@ export const processMessage = inngest.createFunction(
                 .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
                 .join("\n\n");
 
-            systemPrompt += `\n\n## Previous Conversation (for context only - do NOT repeat these responses):\n${historyText}\n\n## Current Request:\nRespond ONLY to the user's new message below. Do not repeat or reference your previous responses.`;
+            systemPrompt += `
+            \n\n## Previous Conversation (for context only - do NOT repeat these responses):\n${historyText}.
+            \n\n## Current Request:\nRespond ONLY to the user's new message below. Do not repeat or reference your previous responses.
+            \n\n## character:\nPlease reply to the user's message in the style of a maid.
+            \n\n##Note:\nPlease answer in Chinese.
+            `;
         }
 
         // 如果仍为默认，请生成对话标题
@@ -189,8 +194,6 @@ export const processMessage = inngest.createFunction(
                 const lastResult = network.state.results.at(-1);
                 if (!lastResult) return codingAgent;
 
-                // 从上一轮响应中提取 reasoning_content，存入 WeakMap，
-                // onCall 钩子会在下一轮请求发送前把它注入到对应 assistant 消息中
                 // 注意：raw 可能是 string（JSON 字符串）需要解析
                 let raw: Record<string, unknown> | undefined;
                 const rawData = lastResult.raw;
@@ -206,6 +209,7 @@ export const processMessage = inngest.createFunction(
 
                 if (raw) {
                     const reasoning = (raw as any)?.choices?.[0]?.message?.reasoning_content as string | undefined;
+                    
                     if (reasoning) {
                         console.log('[Router] extracted reasoning:', `${reasoning.slice(0, 100)}...`);
                         setReasoning(reasoning);
