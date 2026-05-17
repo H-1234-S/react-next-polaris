@@ -4,7 +4,7 @@ import { messageCancel, messageSent } from "@/inngest/events";
 import { inngest } from "@/inngest/client";
 import { NonRetriableError } from "inngest";
 
-import { deepseekModel, setReasoning } from '@/lib/deepseek';
+import { deepseekModel, runWithReasoningScope, setReasoning } from '@/lib/deepseek';
 
 import { convex } from "@/lib/convex-client";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -126,7 +126,10 @@ export const processMessage = inngest.createFunction(
             const titleAgent = createAgent({
                 name: "title-generator",
                 system: TITLE_GENERATOR_SYSTEM_PROMPT,
-                model: deepseekModel({ model: 'deepseek-v4-flash', provider: 'OpenAI' })
+                model: deepseekModel({
+                    model: 'deepseek-v4-flash',
+                    provider: 'OpenAI'
+                })
             });
 
             console.log("start title agent");
@@ -209,7 +212,7 @@ export const processMessage = inngest.createFunction(
 
                 if (raw) {
                     const reasoning = (raw as any)?.choices?.[0]?.message?.reasoning_content as string | undefined;
-                    
+
                     if (reasoning) {
                         console.log('[Router] extracted reasoning:', `${reasoning.slice(0, 100)}...`);
                         setReasoning(reasoning);
@@ -234,7 +237,7 @@ export const processMessage = inngest.createFunction(
         // 运行代理
         console.log('start network agent')
 
-        const result = await network.run(message);
+        const result = await runWithReasoningScope(() => network.run(message));
 
         console.log("done network agent");
 
@@ -265,6 +268,5 @@ export const processMessage = inngest.createFunction(
         });
 
         return { success: true, messageId, conversationId };
-
     }
 )

@@ -1,5 +1,6 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { anthropic, openai } from '@inngest/agent-kit';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export const deepseek = createDeepSeek({
   apiKey: process.env.DEEPSEEK_API_KEY,
@@ -14,8 +15,90 @@ interface DeepseekModel {
   };
 }
 
-// DeepSeek reasoner: 将 reasoning_content 存入 thread-local 变量，onCall 时读取
-let pendingReasoning: string | undefined;
+interface ReasoningScope {
+  reasoningHistory: string[];
+}
+
+// DeepSeek reasoner: 将 reasoning_content 存入当前 network 异步链路，onCall 时读取。
+const reasoningStorage = new AsyncLocalStorage<ReasoningScope>();
+
+const getReasoningScope = () => reasoningStorage.getStore();
+
+const getReasoningHistory = () => {
+  const scope = getReasoningScope();
+  return scope?.reasoningHistory ?? [];
+};
+
+const addReasoning = (reasoning: string) => {
+  const scope = getReasoningScope();
+  if (!scope) {
+    console.warn('[DeepSeek setReasoning] skipped reasoning_content without active scope.');
+    return;
+  }
+
+  scope.reasoningHistory.push(reasoning);
+};
+
+const injectReasoningHistory = (
+  messages: Array<Record<string, unknown>> | undefined,
+  reasoningHistory: string[],
+) => {
+  if (!messages || reasoningHistory.length === 0) {
+    return { reasoningCount: 0, messageCount: 0 };
+  }
+
+  let reasoningIndex = 0;
+  let injectedCount = 0;
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    const hasToolCalls =
+      Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0;
+    const hasContent =
+      typeof msg.content === 'string' && msg.content.trim() !== '';
+
+    if (msg.role !== 'assistant' || (!hasToolCalls && !hasContent)) {
+      continue;
+    }
+
+    if (reasoningIndex >= reasoningHistory.length) {
+      break;
+    }
+
+    const reasoning = reasoningHistory[reasoningIndex];
+
+    // AgentKit 会把同一次 OpenAI 响应里的 content 和 tool_calls 拆成连续的 assistant 消息。
+    // DeepSeek 校验历史时需要这组 assistant 消息都带回同一份 reasoning_content。
+    while (i < messages.length) {
+      const assistantMsg = messages[i];
+      const assistantHasToolCalls =
+        Array.isArray(assistantMsg.tool_calls) &&
+        assistantMsg.tool_calls.length > 0;
+      const assistantHasContent =
+        typeof assistantMsg.content === 'string' &&
+        assistantMsg.content.trim() !== '';
+
+      if (
+        assistantMsg.role !== 'assistant' ||
+        (!assistantHasToolCalls && !assistantHasContent)
+      ) {
+        i--;
+        break;
+      }
+
+      assistantMsg.reasoning_content = reasoning;
+      injectedCount++;
+      i++;
+    }
+
+    reasoningIndex++;
+  }
+
+  return {
+    reasoningCount: reasoningIndex,
+    messageCount: injectedCount,
+  };
+};
 
 export const deepseekModel = ({ provider, model, feature }: DeepseekModel) => {
   if (provider === 'Anthropic') {
@@ -43,42 +126,18 @@ export const deepseekModel = ({ provider, model, feature }: DeepseekModel) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     body.model = (model as any).options.model;
 
-    // DeepSeek reasoner: 从 thread-local 变量读取 reasoning_content 并注入
-    const reasoning = pendingReasoning;
-
-    console.log('[DeepSeek onCall] pendingReasoning:', reasoning ? `${reasoning.slice(0, 100)}...` : 'null');
-    
-    if (reasoning) {
-
+    // DeepSeek reasoner: 每一轮都会重建完整 messages，需要给历史 assistant 消息批量补回 reasoning_content。
+    const reasoningHistory = getReasoningHistory();
+    if (reasoningHistory.length > 0) {
       const messages = body.messages as Array<Record<string, unknown>> | undefined;
+      const injected = injectReasoningHistory(messages, reasoningHistory);
 
-      console.log('[DeepSeek onCall] messages count:', messages?.length);
-
-      if (messages) {
-
-        // 倒序遍历，找到最后一个响应将字段注入
-        for (let i = messages.length - 1; i >= 0; i--) {
-          const msg = messages[i];
-          const hasToolCalls = !!(msg.tool_calls && (msg.tool_calls as unknown[]).length > 0);
-          const hasContent = !!(msg.content && (msg.content as string).trim() !== '');
-          console.log(`[DeepSeek onCall] msg[${i}]: role=${msg.role}, hasToolCalls=${hasToolCalls}, hasContent=${hasContent}`);
-          
-          if (msg.role === 'assistant' && hasToolCalls) {
-            msg.reasoning_content = reasoning;
-            console.log('[DeepSeek onCall] injected reasoning_content to msg index:', i);
-            break;
-          }
-
-          if (msg.role === 'assistant' && hasContent) {
-            msg.reasoning_content = reasoning;
-            console.log('[DeepSeek onCall] injected reasoning_content to text-msg index:', i);
-            break;
-          }
-        }
+      if (injected.reasoningCount < reasoningHistory.length) {
+        console.warn(
+          `[DeepSeek onCall] injected ${injected.reasoningCount}/${reasoningHistory.length} reasoning_content values into ${injected.messageCount} assistant messages.`,
+        );
       }
     }
-    // 注入后清除，避免泄露到后续请求
-    pendingReasoning = undefined;
   };
 
   return adapter;
@@ -86,7 +145,11 @@ export const deepseekModel = ({ provider, model, feature }: DeepseekModel) => {
 
 // 导出给 router 调用：从 raw 响应提取 reasoning_content 并存入 thread-local 变量
 export const setReasoning: (reasoning: string) => void = (reasoning) => {
-  pendingReasoning = reasoning;
+  addReasoning(reasoning);
+};
+
+export const runWithReasoningScope = <T>(callback: () => T) => {
+  return reasoningStorage.run({ reasoningHistory: [] }, callback);
 };
 
 /**
