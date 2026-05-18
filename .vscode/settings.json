@@ -1,3 +1,4 @@
 {
-    "commentTranslate.source": "Bing"
+    "commentTranslate.source": "Bing",
+    "commentTranslate.hover.enabled": true
 }
